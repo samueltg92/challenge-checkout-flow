@@ -6,40 +6,57 @@ interface PaymentMethod {
   name: string
   description: string
   icon: string
+  woocommerceId?: string // WooCommerce payment method ID
 }
 
 interface PaymentMethodsProps {
   selectedMethod: string
   onMethodSelect: (method: string) => void
+  availableMethods?: PaymentMethod[] // Allow custom payment methods from WooCommerce
 }
 
-export default function PaymentMethods({ selectedMethod, onMethodSelect }: PaymentMethodsProps) {
-  const paymentMethods: PaymentMethod[] = [
+export default function PaymentMethods({ selectedMethod, onMethodSelect, availableMethods }: PaymentMethodsProps) {
+  // Default payment methods - can be overridden by WooCommerce available methods
+  const defaultPaymentMethods: PaymentMethod[] = [
     {
-      id: 'credit-card',
+      id: 'bacs',
+      name: 'Bank Transfer',
+      description: 'Direct bank transfer',
+      icon: '🏦',
+      woocommerceId: 'bacs'
+    },
+    {
+      id: 'stripe',
       name: 'Credit Card',
       description: 'Visa, Mastercard, American Express',
-      icon: '💳'
+      icon: '💳',
+      woocommerceId: 'stripe'
     },
     {
       id: 'paypal',
       name: 'PayPal',
       description: 'Pay with your PayPal account',
-      icon: '🅿️'
+      icon: '🅿️',
+      woocommerceId: 'paypal'
     },
     {
-      id: 'apple-pay',
-      name: 'Apple Pay',
-      description: 'Touch ID or Face ID',
-      icon: '🍎'
+      id: 'razorpay',
+      name: 'Razorpay',
+      description: 'Credit/Debit Cards, UPI, Wallets',
+      icon: '💰',
+      woocommerceId: 'razorpay'
     },
     {
-      id: 'google-pay',
-      name: 'Google Pay',
-      description: 'Pay with Google',
-      icon: '📱'
+      id: 'cod',
+      name: 'Cash on Delivery',
+      description: 'Pay when you receive',
+      icon: '💵',
+      woocommerceId: 'cod'
     }
   ]
+
+  // Use provided methods or fall back to defaults
+  const paymentMethods = availableMethods || defaultPaymentMethods
 
   return (
     <Card className="p-6 bg-card border border-border">

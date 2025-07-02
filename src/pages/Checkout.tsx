@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import ChallengeTypeSelector from "@/components/checkout/ChallengeTypeSelector"
 import ChallengeAmountSelector from "@/components/checkout/ChallengeAmountSelector"
 import PlatformSelector from "@/components/checkout/PlatformSelector"
@@ -8,6 +8,7 @@ import PersonalInfoForm from "@/components/checkout/PersonalInfoForm"
 import DiscountCoupon from "@/components/checkout/DiscountCoupon"
 import PaymentMethods from "@/components/checkout/PaymentMethods"
 import OrderSummary from "@/components/checkout/OrderSummary"
+import { useWooCommerce } from "@/hooks/useWooCommerce"
 import { useToast } from "@/hooks/use-toast"
 
 interface FormData {
@@ -43,60 +44,25 @@ export default function Checkout() {
   })
   
   // Payment states
-  const [paymentMethod, setPaymentMethod] = useState('credit-card')
-  const [appliedCoupon, setAppliedCoupon] = useState('')
-  const [discount, setDiscount] = useState(0)
+  const [paymentMethod, setPaymentMethod] = useState('stripe') // Default to stripe for WooCommerce
+  
+  // WooCommerce integration
+  const {
+    cart,
+    isLoading,
+    challengeRules,
+    applyCoupon: wooApplyCoupon,
+    removeCoupon: wooRemoveCoupon,
+    processCheckout,
+    getOrderSummary
+  } = useWooCommerce({
+    challengeType,
+    challengeAmount,
+    selectedAddons
+  })
 
-  // Product configuration mapping
-  const productConfig: Record<string, Record<string, { price: number; name: string }>> = {
-    'one-step': {
-      '10k': { price: 82, name: 'One-Step Challenge $10,000' },
-      '25k': { price: 149, name: 'One-Step Challenge $25,000' },
-      '50k': { price: 299, name: 'One-Step Challenge $50,000' },
-      '100k': { price: 549, name: 'One-Step Challenge $100,000' }
-    },
-    'two-step': {
-      '10k': { price: 85, name: 'Two-Step Challenge $10,000' },
-      '25k': { price: 159, name: 'Two-Step Challenge $25,000' },
-      '50k': { price: 319, name: 'Two-Step Challenge $50,000' },
-      '100k': { price: 579, name: 'Two-Step Challenge $100,000' }
-    }
-  }
-
-  const addonPrices: Record<string, { name: string; price: number }> = {
-    'ea-support': { name: 'Expert Advisor Support', price: 25 },
-    'weekend-hold': { name: 'Weekend Holding', price: 15 },
-    'reset-option': { name: 'One-Time Reset', price: 35 }
-  }
-
-  // Calculate order items
-  const getOrderItems = (): OrderItem[] => {
-    const items: OrderItem[] = []
-    
-    // Main challenge
-    const challengeProduct = productConfig[challengeType]?.[challengeAmount]
-    if (challengeProduct) {
-      items.push({
-        id: 'challenge',
-        name: challengeProduct.name,
-        price: challengeProduct.price
-      })
-    }
-    
-    // Add-ons
-    selectedAddons.forEach(addonId => {
-      const addon = addonPrices[addonId]
-      if (addon) {
-        items.push({
-          id: addonId,
-          name: addon.name,
-          price: addon.price
-        })
-      }
-    })
-    
-    return items
-  }
+  // Get order summary from WooCommerce cart
+  const orderSummary = getOrderSummary()
 
   // Handle form changes
   const handleFormChange = (field: string, value: string) => {
@@ -112,46 +78,26 @@ export default function Checkout() {
     )
   }
 
-  // Handle coupon application
-  const handleCouponApply = (coupon: string) => {
+  // Handle coupon application using WooCommerce
+  const handleCouponApply = async (coupon: string) => {
     if (!coupon) {
-      setAppliedCoupon('')
-      setDiscount(0)
-      toast({
-        title: "Coupon Removed",
-        description: "Discount has been removed from your order."
-      })
+      // Get applied coupons from cart and remove them
+      if (cart?.coupons && cart.coupons.length > 0) {
+        for (const appliedCoupon of cart.coupons) {
+          await wooRemoveCoupon(appliedCoupon.code)
+        }
+      }
       return
     }
 
-    // Mock coupon validation
-    const validCoupons: Record<string, number> = {
-      'SAVE10': 10,
-      'SAVE20': 20,
-      'WELCOME15': 15
-    }
-
-    if (validCoupons[coupon.toUpperCase()]) {
-      setAppliedCoupon(coupon.toUpperCase())
-      setDiscount(validCoupons[coupon.toUpperCase()])
-      toast({
-        title: "Coupon Applied!",
-        description: `You saved ${validCoupons[coupon.toUpperCase()]}% on your order.`
-      })
-    } else {
-      toast({
-        title: "Invalid Coupon",
-        description: "The coupon code you entered is not valid.",
-        variant: "destructive"
-      })
-    }
+    await wooApplyCoupon(coupon)
   }
 
   // Check if form is valid
   const isFormValid = Boolean(formData.firstName && formData.lastName && formData.email && paymentMethod)
 
-  // Handle checkout
-  const handleCheckout = () => {
+  // Handle checkout using WooCommerce
+  const handleCheckout = async () => {
     if (!isFormValid) {
       toast({
         title: "Incomplete Form",
@@ -161,19 +107,18 @@ export default function Checkout() {
       return
     }
 
-    toast({
-      title: "Processing Payment...",
-      description: "Please wait while we process your payment."
-    })
-
-    // Mock payment processing
-    setTimeout(() => {
-      toast({
-        title: "Payment Successful!",
-        description: "Your challenge account will be set up within 24 hours."
-      })
-    }, 2000)
+    try {
+      await processCheckout(formData, paymentMethod)
+    } catch (error) {
+      // Error handling is done in the hook
+      console.error('Checkout failed:', error)
+    }
   }
+
+  // Get applied coupon info for display
+  const appliedCoupon = cart?.coupons?.[0]?.code || ''
+  const discountAmount = cart?.coupons?.[0] ? parseFloat(cart.coupons[0].totals.total_discount) : 0
+  const discountPercentage = orderSummary.subtotal > 0 ? Math.round((discountAmount / orderSummary.subtotal) * 100) : 0
 
   return (
     <div className="min-h-screen bg-background">
@@ -225,7 +170,7 @@ export default function Checkout() {
             <DiscountCoupon
               onCouponApply={handleCouponApply}
               appliedCoupon={appliedCoupon}
-              discount={discount}
+              discount={discountPercentage}
             />
             
             <PaymentMethods
@@ -234,8 +179,8 @@ export default function Checkout() {
             />
             
             <OrderSummary
-              items={getOrderItems()}
-              discount={discount}
+              items={orderSummary.items}
+              discount={discountPercentage}
               onCheckout={handleCheckout}
               isFormValid={isFormValid}
             />
