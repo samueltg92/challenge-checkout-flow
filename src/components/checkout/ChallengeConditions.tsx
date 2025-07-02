@@ -25,16 +25,56 @@ export default function ChallengeConditions({ challengeType, challengeAmount }: 
           dailyDrawdown: '$1,250 (5%)',
           tradingPeriod: 'Unlimited',
           minTradingDays: '5 days'
+        },
+        '50k': {
+          accountSize: '$50,000',
+          profitTarget: '$4,000 (8%)',
+          maxDrawdown: '$5,000 (10%)',
+          dailyDrawdown: '$2,500 (5%)',
+          tradingPeriod: 'Unlimited',
+          minTradingDays: '5 days'
+        },
+        '100k': {
+          accountSize: '$100,000',
+          profitTarget: '$8,000 (8%)',
+          maxDrawdown: '$10,000 (10%)',
+          dailyDrawdown: '$5,000 (5%)',
+          tradingPeriod: 'Unlimited',
+          minTradingDays: '5 days'
         }
       },
       'two-step': {
         '10k': {
           accountSize: '$10,000',
-          profitTarget: '$800 (8%) → $500 (5%)',
+          profitTarget: 'Phase 1: $800 (8%) → Phase 2: $500 (5%)',
           maxDrawdown: '$1,000 (10%)',
           dailyDrawdown: '$500 (5%)',
-          tradingPeriod: '30 days → Unlimited',
-          minTradingDays: '5 days → 5 days'
+          tradingPeriod: 'Phase 1: 30 days → Phase 2: Unlimited',
+          minTradingDays: 'Phase 1: 5 days → Phase 2: 5 days'
+        },
+        '25k': {
+          accountSize: '$25,000',
+          profitTarget: 'Phase 1: $2,000 (8%) → Phase 2: $1,250 (5%)',
+          maxDrawdown: '$2,500 (10%)',
+          dailyDrawdown: '$1,250 (5%)',
+          tradingPeriod: 'Phase 1: 30 days → Phase 2: Unlimited',
+          minTradingDays: 'Phase 1: 5 days → Phase 2: 5 days'
+        },
+        '50k': {
+          accountSize: '$50,000',
+          profitTarget: 'Phase 1: $4,000 (8%) → Phase 2: $2,500 (5%)',
+          maxDrawdown: '$5,000 (10%)',
+          dailyDrawdown: '$2,500 (5%)',
+          tradingPeriod: 'Phase 1: 30 days → Phase 2: Unlimited',
+          minTradingDays: 'Phase 1: 5 days → Phase 2: 5 days'
+        },
+        '100k': {
+          accountSize: '$100,000',
+          profitTarget: 'Phase 1: $8,000 (8%) → Phase 2: $5,000 (5%)',
+          maxDrawdown: '$10,000 (10%)',
+          dailyDrawdown: '$5,000 (5%)',
+          tradingPeriod: 'Phase 1: 30 days → Phase 2: Unlimited',
+          minTradingDays: 'Phase 1: 5 days → Phase 2: 5 days'
         }
       }
     }
