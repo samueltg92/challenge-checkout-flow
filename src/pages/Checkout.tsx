@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useMutation } from "@tanstack/react-query"
 import ChallengeTypeSelector from "@/components/checkout/ChallengeTypeSelector"
 import ChallengeAmountSelector from "@/components/checkout/ChallengeAmountSelector"
 import PlatformSelector from "@/components/checkout/PlatformSelector"
@@ -11,6 +11,7 @@ import OrderSummary from "@/components/checkout/OrderSummary"
 import { useWooCommerce } from "@/hooks/useWooCommerce"
 import { useToast } from "@/hooks/use-toast"
 import { productConfig } from "@/lib/woocommerce"
+import { updateCart } from "@/lib/woocommerce-api"
 
 interface FormData {
   firstName: string
@@ -85,6 +86,32 @@ export default function Checkout() {
     selectedAddons
   })
 
+  // Cart update mutation
+  const updateCartMutation = useMutation({
+    mutationFn: updateCart,
+    onSuccess: (response) => {
+      if (response.success) {
+        toast({
+          title: "Success!",
+          description: "Product added to cart successfully",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to update cart",
+          variant: "destructive"
+        })
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update cart",
+        variant: "destructive"
+      })
+    }
+  })
+
   // Get order summary from WooCommerce cart
   const orderSummary = getOrderSummary()
 
@@ -120,6 +147,20 @@ export default function Checkout() {
   // Check if form is valid
   const isFormValid = Boolean(formData.firstName && formData.lastName && formData.email && paymentMethod)
 
+  // Handle add to cart
+  const handleAddToCart = async () => {
+    if (!currentProduct?.productId) {
+      toast({
+        title: "Error",
+        description: "No product selected",
+        variant: "destructive"
+      })
+      return
+    }
+
+    updateCartMutation.mutate(currentProduct.productId)
+  }
+
   // Handle checkout using WooCommerce
   const handleCheckout = async () => {
     if (!isFormValid) {
@@ -131,11 +172,16 @@ export default function Checkout() {
       return
     }
 
-    try {
-      await processCheckout(formData, paymentMethod)
-    } catch (error) {
-      // Error handling is done in the hook
-      console.error('Checkout failed:', error)
+    // First add product to cart, then proceed to checkout
+    if (currentProduct?.productId && !updateCartMutation.isPending) {
+      await handleAddToCart()
+      
+      try {
+        await processCheckout(formData, paymentMethod)
+      } catch (error) {
+        // Error handling is done in the hook
+        console.error('Checkout failed:', error)
+      }
     }
   }
 
@@ -232,6 +278,7 @@ export default function Checkout() {
               discount={discountPercentage}
               onCheckout={handleCheckout}
               isFormValid={isFormValid}
+              isLoading={updateCartMutation.isPending || isLoading}
             />
           </div>
         </div>

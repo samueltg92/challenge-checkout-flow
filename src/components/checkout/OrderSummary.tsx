@@ -13,9 +13,10 @@ interface OrderSummaryProps {
   discount?: number
   onCheckout: () => void
   isFormValid: boolean
+  isLoading?: boolean
 }
 
-export default function OrderSummary({ items, discount = 0, onCheckout, isFormValid }: OrderSummaryProps) {
+export default function OrderSummary({ items, discount = 0, onCheckout, isFormValid, isLoading = false }: OrderSummaryProps) {
   const subtotal = items.reduce((sum, item) => sum + item.price, 0)
   const discountAmount = (subtotal * discount) / 100
   const total = subtotal - discountAmount
@@ -57,11 +58,20 @@ export default function OrderSummary({ items, discount = 0, onCheckout, isFormVa
           variant="checkout"
           size="xl"
           onClick={onCheckout}
-          disabled={!isFormValid}
+          disabled={!isFormValid || isLoading}
           className="animate-scale-in"
         >
-          <Lock className="w-5 h-5" />
-          Complete Purchase
+          {isLoading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <Lock className="w-5 h-5" />
+              Complete Purchase
+            </>
+          )}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
           🔒 Secure Payment • SSL Encrypted
