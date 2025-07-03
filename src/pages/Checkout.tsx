@@ -1,15 +1,16 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useQuery } from "@tanstack/react-query"
 import ChallengeTypeSelector from "@/components/checkout/ChallengeTypeSelector"
 import ChallengeAmountSelector from "@/components/checkout/ChallengeAmountSelector"
 import PlatformSelector from "@/components/checkout/PlatformSelector"
 import AddonsSelector from "@/components/checkout/AddonsSelector"
-import ChallengeConditions from "@/components/checkout/ChallengeConditions"
 import PersonalInfoForm from "@/components/checkout/PersonalInfoForm"
 import DiscountCoupon from "@/components/checkout/DiscountCoupon"
 import PaymentMethods from "@/components/checkout/PaymentMethods"
 import OrderSummary from "@/components/checkout/OrderSummary"
 import { useWooCommerce } from "@/hooks/useWooCommerce"
 import { useToast } from "@/hooks/use-toast"
+import { productConfig } from "@/lib/woocommerce"
 
 interface FormData {
   firstName: string
@@ -46,11 +47,34 @@ export default function Checkout() {
   // Payment states
   const [paymentMethod, setPaymentMethod] = useState('stripe') // Default to stripe for WooCommerce
   
+  // Calculate current product configuration
+  const currentProduct = useMemo(() => {
+    return productConfig[challengeType]?.[challengeAmount]
+  }, [challengeType, challengeAmount])
+
+  const rulesKey = currentProduct?.rulesKey
+
+  // Fetch challenge rules dynamically
+  const { 
+    data: challengeRules, 
+    isLoading: isLoadingRules, 
+    isError: isErrorRules 
+  } = useQuery({
+    queryKey: ['challenge-rules', rulesKey],
+    queryFn: async () => {
+      const response = await fetch(`https://tu-sitio.com/wp-json/custom/v1/challenge-rules/${rulesKey}`)
+      if (!response.ok) {
+        throw new Error('Failed to fetch challenge rules')
+      }
+      return response.json()
+    },
+    enabled: !!rulesKey
+  })
+
   // WooCommerce integration
   const {
     cart,
     isLoading,
-    challengeRules,
     applyCoupon: wooApplyCoupon,
     removeCoupon: wooRemoveCoupon,
     processCheckout,
@@ -154,10 +178,35 @@ export default function Checkout() {
               onAddonToggle={handleAddonToggle}
             />
             
-            <ChallengeConditions
-              challengeType={challengeType}
-              challengeAmount={challengeAmount}
-            />
+            {/* Challenge Conditions Section */}
+            <div className="bg-card border border-border rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Challenge Conditions</h3>
+              
+              {isLoadingRules && (
+                <div className="text-center py-4">
+                  <p className="text-muted-foreground">Cargando reglas...</p>
+                </div>
+              )}
+              
+              {isErrorRules && (
+                <div className="text-center py-4">
+                  <p className="text-destructive">Error al cargar las reglas del challenge</p>
+                </div>
+              )}
+              
+              {challengeRules && (
+                <div className="space-y-3">
+                  {Object.entries(challengeRules).map(([key, value]) => (
+                    <div key={key} className="flex justify-between py-2 border-b border-border last:border-b-0">
+                      <span className="text-muted-foreground capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}:
+                      </span>
+                      <span className="font-medium text-foreground">{value as string}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Right Column - User Info & Payment */}
