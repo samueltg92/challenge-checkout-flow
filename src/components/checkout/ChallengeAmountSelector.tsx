@@ -36,24 +36,24 @@ export default function ChallengeAmountSelector({ selectedAmount, onAmountSelect
       <h3 className="text-lg font-semibold text-foreground">Challenge Amount</h3>
       <div className="grid grid-cols-2 gap-3">
         {currentAmounts.map((amount) => (
-          <Card
+          <div
             key={amount.id}
-            className={`p-4 cursor-pointer transition-all duration-300 hover:scale-105 ${
+            className={`p-4 cursor-pointer transition-all duration-300 hover:scale-105 rounded-lg border ${
               selectedAmount === amount.id
-                ? 'border-2 border-accent bg-card shadow-selected'
-                : 'border border-border bg-card hover:border-accent/50'
+                ? 'bg-selected-bg text-selected-text shadow-selected border-selected-bg'
+                : 'bg-unselected-bg text-unselected-text hover:bg-hover-bg border-border'
             }`}
             onClick={() => onAmountSelect(amount.id)}
           >
             <div className="text-center space-y-1">
-              <div className="text-xl font-bold text-foreground">{amount.amount}</div>
+              <div className="text-xl font-bold">{amount.amount}</div>
               <div className={`text-sm font-medium ${
-                selectedAmount === amount.id ? 'text-accent' : 'text-muted-foreground'
+                selectedAmount === amount.id ? 'text-selected-text/80' : 'text-unselected-text/70'
               }`}>
                 {amount.price}
               </div>
             </div>
-          </Card>
+          </div>
         ))}
       </div>
     </div>
